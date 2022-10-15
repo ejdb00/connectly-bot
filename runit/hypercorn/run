@@ -1,0 +1,18 @@
+#!/bin/bash
+set -eu
+exec 2>&1
+
+PID=/var/run/hypercorn.pid
+
+if [ -f $PID ]; then rm $PID; fi
+
+mkdir -p /var/log/hypercorn
+touch /var/log/hypercorn/current
+
+cd /usr/src/bot \
+&& PYTHONPATH=/usr/src \
+hypercorn --config python:bot.hypercorn_config \
+--pid=$PID \
+asgi:app 2>&1;
+
+sleep 5

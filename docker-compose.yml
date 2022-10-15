@@ -1,0 +1,44 @@
+version: "3.2"
+services:
+  review-bot:
+    image: review-bot
+    container_name: review-bot
+    depends_on:
+      - postgres
+    build: .
+    ports:
+      - "8080:8080"
+      - "8443:8443"
+    environment:
+      - PYTHONPATH=/usr/src
+    volumes:
+      - type: bind
+        source: ./bot/
+        target: /usr/src/bot
+        read_only: true
+      - type: bind
+        source: ./bin/
+        target: /usr/src/bin
+        read_only: true
+      # Runit - hypercorn
+      - type: bind
+        source: ./runit/hypercorn/run
+        target: /etc/sv/hypercorn/run
+        read_only: true
+      # Runit - nginx
+      - type: bind
+        source: ./runit/nginx/run
+        target: /etc/sv/nginx/run
+        read_only: true
+      # SSL Credentials
+      - type: bind
+        source: ~/.ssl/
+        target: /etc/nginx/ssl
+        read_only: true
+    entrypoint: /usr/src/bin/docker-entrypoint.sh
+  postgres:
+    image: postgres
+    container_name: review-bot-postgres
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
