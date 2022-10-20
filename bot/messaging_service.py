@@ -79,7 +79,7 @@ class Product:
     @classmethod
     def from_json(cls, obj):
         return Product(
-            id=obj['id'], 
+            id=int(obj['id']), 
             product_name=obj['productName'], 
             manufacturer=obj['manufacturer'],
             vehicle=obj['vehicle']
@@ -108,10 +108,7 @@ def format_product_selection_message() -> str:
 
 def handle_incoming_message(message: IncomingMessage):
     print('Recieved incoming message')
-    try:
-        create_or_update_conversation(message)
-    except Exception as e:
-        print(e)
+    create_or_update_conversation(message)
 
 
 def handle_outgoing_message(message: OutgoingMessage):
@@ -176,11 +173,12 @@ def create_or_update_conversation(message: IncomingMessage):
 def handle_product_selection(msg: str, convo: Conversation):
     try:
         id = int(msg)
+        product = get_products()[id]
+        reply = OutgoingMessage(recipient_id=convo.person.id, text='And what did you think of the %s?' % product.vehicle)
+        handle_outgoing_message(reply)
         convo.product_selected_at = datetime.now()
         convo.selected_product_id = id
         convo.save()
-        reply = OutgoingMessage(recipient_id=convo.person.id, text='Thanks for selecting')
-        handle_outgoing_message(reply)
 
     except ValueError:
         reply = OutgoingMessage(recipient_id=convo.person.id, text='Please respond with the number of the product you would like to review')
@@ -188,7 +186,7 @@ def handle_product_selection(msg: str, convo: Conversation):
     
 
 def solicit_review_in_conversation(convo: Conversation):
-    outgoing = OutgoingMessage(recipient_id=convo.person.id, text=SOLICIT_REVIEW_REPLY_TEMPLATE)
+    outgoing = OutgoingMessage(recipient_id=convo.person.id, text=format_product_selection_message())
     handle_outgoing_message(outgoing)
     convo.review_requested_at = datetime.now()
     convo.save()
