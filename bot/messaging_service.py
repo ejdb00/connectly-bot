@@ -70,14 +70,17 @@ class ProfileInfo:
 
 def handle_incoming_message(message: IncomingMessage):
     print('Recieved incoming message')
-    create_or_update_conversation(message)
+    try:
+        create_or_update_conversation(message)
+    except Exception as e:
+        print(e)
 
 
 def handle_outgoing_message(message: OutgoingMessage):
     payload = message.to_api_payload()
     headers = {'content-type': 'application/json'}
     params = {'access_token': ACCESS_TOKEN}
-    response = requests.post(url=MESSAGES_URL, params=params, headers=headers, json=payload)
+    response = requests.post(url=MESSAGES_URL, params=params, headers=headers, json=payload, timeout=3)
     print(response.text)
     
 
@@ -87,7 +90,7 @@ def get_profile_info(person_id: int) -> ProfileInfo:
         'access_token': ACCESS_TOKEN
     }
     url = PROFILE_URL_TEMPLATE.format(person_id)
-    response = requests.get(url=url, params=params)
+    response = requests.get(url=url, params=params, timeout=3)
     info = ProfileInfo.from_json(response.json(), person_id)
     print(info)
     return info
