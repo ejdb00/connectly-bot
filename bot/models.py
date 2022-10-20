@@ -1,5 +1,4 @@
-from datetime import datetime
-import db_service
+import bot.db_service as db
 import uuid
 
 from typing import List
@@ -18,7 +17,7 @@ from peewee import (
 class Person(Model):
 
     class Meta:
-        database = db_service.get_db_instance()
+        database = db.get_db_instance()
         table_name = 'persons'
 
     id = BigIntegerField(primary_key=True)
@@ -29,7 +28,7 @@ class Person(Model):
 class Conversation(Model):
 
     class Meta:
-        database = db_service.get_db_instance()
+        database = db.get_db_instance()
         table_name = 'conversations'
 
     id = UUIDField(primary_key=True, default=uuid.uuid4)
@@ -43,7 +42,7 @@ class Conversation(Model):
 class Review(Model):
 
     class Meta:
-        database = db_service.get_db_instance()
+        database = db.get_db_instance()
         table_name = 'reviews'
 
     id = UUIDField(primary_key=True, default=uuid.uuid4)

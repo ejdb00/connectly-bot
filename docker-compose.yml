@@ -20,6 +20,10 @@ services:
         source: ./bin/
         target: /usr/src/bin
         read_only: true
+      - type: bind
+        source: ./scripts/
+        target: /usr/src/scripts
+        read_only: true
       # Runit - hypercorn
       - type: bind
         source: ./runit/hypercorn/run
