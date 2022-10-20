@@ -25,6 +25,7 @@ class Person(Model):
     last_name = TextField(null=True)
     created_at = DateTimeField()
 
+
 class Conversation(Model):
 
     class Meta:
@@ -33,8 +34,10 @@ class Conversation(Model):
 
     id = UUIDField(primary_key=True, default=uuid.uuid4)
     person = ForeignKeyField(Person, index=True, unique=False)
+    selected_product_id = BigIntegerField(null=True)
     started_at = DateTimeField()
     review_requested_at = DateTimeField(null=True)
+    product_selected_at = DateTimeField(null=True)
     review_recieved_at = DateTimeField(null=True)
     declined_review_at = DateTimeField(null=True)
     
@@ -48,6 +51,7 @@ class Review(Model):
     id = UUIDField(primary_key=True, default=uuid.uuid4)
     conversation = ForeignKeyField(Conversation, index=True, unique=False)
     person = ForeignKeyField(Person, index=True, unique=False)
+    product_id = BigIntegerField()
     created_at = DateTimeField()
     estimated_review_stars = DecimalField(max_digits=4, decimal_places=3)
     raw_message = TextField()

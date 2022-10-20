@@ -13,6 +13,7 @@ PROFILE_URL_TEMPLATE = 'https://graph.facebook.com/{}'
 DECLINE_MESSAGE = 'NO'
 SOLICIT_REVIEW_REPLY_TEMPLATE = 'Please take a moment to let us know how we did, or reply NO if you\'d rather not.'
 SOLICIT_REVIEW_PROACTIVE_TEMPLATE = 'Hey {}!  Please take a moment to let us know what you thought of your experience with us, or reply NO if you\'d rather not.'
+PRODUCT_CHOOSE_TEMPLATE = 'Which product would you like to provide a review for? Please respond with the number of your chosen product: {}'
 
 
 tokenizer = AutoTokenizer.from_pretrained("nlptown/bert-base-multilingual-uncased-sentiment")
@@ -66,6 +67,43 @@ class ProfileInfo:
             first_name=obj['first_name'], 
             last_name=obj['last_name']
         )
+        
+
+@dataclass(frozen=True)
+class Product:
+    id: int
+    product_name: str
+    manufacturer: str
+    vehicle: str
+
+    @classmethod
+    def from_json(cls, obj):
+        return Product(
+            id=obj['id'], 
+            product_name=obj['productName'], 
+            manufacturer=obj['manufacturer'],
+            vehicle=obj['vehicle']
+        )
+        
+
+def get_products():
+    response = requests.get(url='https://62daf70dd1d97b9e0c49ca5d.mockapi.io/v1/products')
+    products = {}
+    for obj in response.json():
+        product = Product.from_json(obj)
+        products[product.id] = product
+    return products
+
+
+def format_product_selection_message() -> str:
+    products = get_products()
+    product_strings = []
+    for id in products:
+        product = products[id]
+        product_strings.append('(%s: %s %s)' % (product.id, product.manufacturer, product.vehicle))
+    product_string = ', '.join(product_strings)
+    message = PRODUCT_CHOOSE_TEMPLATE.format(product_string)
+    return message
     
 
 def handle_incoming_message(message: IncomingMessage):
@@ -120,6 +158,8 @@ def create_or_update_conversation(message: IncomingMessage):
         else:
             reply = OutgoingMessage(recipient_id=message.sender_id, text='...')
             handle_outgoing_message(reply)
+    elif convo.product_selected_at is None:
+        handle_product_selection(message.text, convo)
     elif convo.review_recieved_at is None and convo.declined_review_at is None:
         if message.text.strip().lower() == 'no':
             convo.declined_review_at = datetime.now()
@@ -129,7 +169,21 @@ def create_or_update_conversation(message: IncomingMessage):
         else:
             process_review(message.text, convo)
     else:
-        reply = OutgoingMessage(recipient_id=message.sender_id, text='Now fuck off')
+        reply = OutgoingMessage(recipient_id=message.sender_id, text='Now get lost')
+        handle_outgoing_message(reply)
+        
+
+def handle_product_selection(msg: str, convo: Conversation):
+    try:
+        id = int(msg)
+        convo.product_selected_at = datetime.now()
+        convo.selected_product_id = id
+        convo.save()
+        reply = OutgoingMessage(recipient_id=convo.person.id, text='Thanks for selecting')
+        handle_outgoing_message(reply)
+
+    except ValueError:
+        reply = OutgoingMessage(recipient_id=convo.person.id, text='Please respond with the number of the product you would like to review')
         handle_outgoing_message(reply)
     
 
@@ -159,6 +213,7 @@ def process_review(raw_review_message: str, convo: Conversation):
     Review.create(
         conversation=convo, 
         person=convo.person, 
+        product_id=convo.selected_product_id,
         created_at=datetime.now(), 
         estimated_review_stars=estimated_review_stars,
         raw_message=raw_review_message
